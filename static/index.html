@@ -3,182 +3,227 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CMPSC 311 Study</title>
+<title>311 Study</title>
 <style>
   :root {
-    --bg:        #0d1117;
-    --bg2:       #161b22;
-    --bg3:       #21262d;
-    --border:    #30363d;
-    --accent:    #7c3aed;
-    --accent2:   #9d5cf8;
-    --green:     #22c55e;
-    --red:       #ef4444;
-    --yellow:    #eab308;
-    --orange:    #f97316;
-    --text:      #e6edf3;
-    --sub:       #8b949e;
-    --radius:    10px;
+    --bg:       #0d1117;
+    --bg2:      #161b22;
+    --bg3:      #21262d;
+    --border:   #30363d;
+    --accent:   #7c3aed;
+    --accent2:  #9d5cf8;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --yellow:   #eab308;
+    --orange:   #f97316;
+    --blue:     #3b82f6;
+    --text:     #e6edf3;
+    --sub:      #8b949e;
+    --radius:   10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; min-height: 100vh; }
 
-  /* Layout */
-  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
-  header h1 { font-size: 18px; font-weight: 700; color: var(--accent2); letter-spacing: -0.3px; }
+  /* ── Header ── */
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 50; }
+  header h1 { font-size: 17px; font-weight: 700; color: var(--accent2); letter-spacing: -.3px; }
   .nav-back { background: none; border: 1px solid var(--border); color: var(--sub); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
   .nav-back:hover { border-color: var(--accent); color: var(--text); }
-  #header-info { margin-left: auto; color: var(--sub); font-size: 13px; display: flex; align-items: center; gap: 12px; }
-  .pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
-  .pill.green { border-color: var(--green); color: var(--green); }
-  .pill.yellow { border-color: var(--yellow); color: var(--yellow); }
-  .pill.accent { border-color: var(--accent); color: var(--accent2); }
+  #header-info { margin-left: auto; color: var(--sub); font-size: 13px; }
 
-  .view { display: none; max-width: 900px; margin: 0 auto; padding: 28px 20px; }
+  /* ── Views ── */
+  .view { display: none; }
   .view.active { display: block; }
+  .page-wrap { max-width: 960px; margin: 0 auto; padding: 28px 20px; }
 
-  /* Cards */
-  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-  .card + .card { margin-top: 14px; }
-
-  /* Upload */
-  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
-  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(124,58,237,.06); }
-  .upload-zone p { color: var(--sub); margin-top: 8px; font-size: 13px; }
-  .upload-zone .icon { font-size: 36px; }
-
-  /* Deck cards */
-  .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 22px; }
-  .deck-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: border-color .2s, transform .15s; }
-  .deck-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .deck-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .deck-meta { color: var(--sub); font-size: 12px; margin-bottom: 12px; }
-  .prog-bar { background: var(--bg3); border-radius: 4px; height: 6px; overflow: hidden; }
-  .prog-fill { height: 100%; border-radius: 4px; transition: width .4s; background: var(--accent); }
-  .prog-fill.complete { background: var(--green); }
-  .deck-actions { display: flex; gap: 8px; margin-top: 14px; }
-  .btn { padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s; }
+  /* ── Buttons ── */
+  .btn { padding: 8px 18px; border-radius: 7px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s, transform .1s; }
   .btn:hover { opacity: .85; }
+  .btn:active { transform: scale(.97); }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
   .btn-sm { padding: 5px 12px; font-size: 12px; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+  .btn-green { background: var(--green); color: #000; }
 
-  /* Status badge on deck */
+  /* ── Cards ── */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+
+  /* ── Upload zone ── */
+  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(124,58,237,.06); }
+  .upload-zone p { color: var(--sub); margin-top: 8px; font-size: 13px; }
+  .upload-zone .icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* ── Deck grid (home) ── */
+  .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 22px; }
+  .deck-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: border-color .2s, transform .15s; }
+  .deck-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .deck-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .deck-meta { color: var(--sub); font-size: 12px; margin-bottom: 12px; }
+  .prog-bar { background: var(--bg3); border-radius: 4px; height: 6px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 4px; transition: width .4s; background: var(--accent); }
+  .prog-fill.done { background: var(--green); }
+  .deck-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
   .status-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
   .status-badge.processing { background: rgba(234,179,8,.15); color: var(--yellow); border: 1px solid var(--yellow); }
-  .status-badge.done { background: rgba(34,197,94,.12); color: var(--green); border: 1px solid var(--green); }
-  .status-badge.error { background: rgba(239,68,68,.12); color: var(--red); border: 1px solid var(--red); }
+  .status-badge.done       { background: rgba(34,197,94,.12);  color: var(--green);  border: 1px solid var(--green); }
+  .status-badge.error      { background: rgba(239,68,68,.12);  color: var(--red);    border: 1px solid var(--red); }
 
-  /* Processing view */
-  #processing-view .card { text-align: center; padding: 40px; }
-  #processing-view h2 { font-size: 20px; margin-bottom: 8px; }
-  #processing-view .prog-bar { margin: 20px auto; max-width: 400px; height: 10px; }
-  #proc-status { color: var(--sub); font-size: 13px; margin-top: 10px; }
-  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+  /* ── Processing view ── */
+  #processing-view .page-wrap { max-width: 600px; text-align: center; padding-top: 60px; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 20px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  #proc-bar-wrap { background: var(--bg3); border-radius: 6px; height: 10px; overflow: hidden; margin: 20px auto; max-width: 400px; }
+  #proc-bar { height: 100%; border-radius: 6px; background: var(--accent); transition: width .6s; }
+  #proc-status { color: var(--sub); font-size: 13px; margin-top: 10px; }
 
-  /* Study view */
-  .study-top { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 13px; color: var(--sub); }
-  .study-top strong { color: var(--text); }
+  /* ── Roadmap view ── */
+  .roadmap-header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+  .roadmap-header h2 { font-size: 20px; font-weight: 700; }
+  .roadmap-header .sub { color: var(--sub); font-size: 13px; margin-top: 3px; }
+  .roadmap-header .actions { margin-left: auto; display: flex; gap: 10px; }
 
-  .study-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 14px; margin-top: 32px; }
 
-  .slide-header { background: var(--bg3); border-bottom: 1px solid var(--border); padding: 12px 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  /* Topic cards grid */
+  .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .topic-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; cursor: pointer; transition: border-color .2s, transform .15s, box-shadow .15s;
+    display: flex; flex-direction: column;
+  }
+  .topic-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .topic-card.complete { border-color: var(--green); }
+  .topic-card .tc-thumb { width: 100%; height: 100px; object-fit: cover; background: var(--bg3); display: block; }
+  .topic-card .tc-no-thumb { width: 100%; height: 100px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--sub); }
+  .topic-card .tc-body { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .topic-card .tc-name { font-size: 13px; font-weight: 600; line-height: 1.4; }
+  .tc-progress { display: flex; flex-direction: column; gap: 5px; }
+  .tc-diff-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .tc-diff-label { width: 46px; color: var(--sub); flex-shrink: 0; }
+  .tc-diff-bar { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .tc-diff-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+  .tc-diff-fill.easy   { background: var(--blue); }
+  .tc-diff-fill.medium { background: var(--yellow); }
+  .tc-diff-fill.tricky { background: var(--orange); }
+  .tc-diff-fill.done   { background: var(--green); }
+  .tc-diff-count { color: var(--sub); font-size: 11px; min-width: 28px; text-align: right; }
+
+  /* Weaknesses panel */
+  .weakness-list { display: flex; flex-direction: column; gap: 8px; margin-top: 0; }
+  .weakness-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .weakness-item .wname { font-size: 13px; font-weight: 500; }
+  .weakness-item .wmeta { font-size: 11px; color: var(--sub); margin-top: 3px; }
+  .w-score { font-size: 18px; font-weight: 700; flex-shrink: 0; }
+
+  /* ── Topic study view ── */
+  #topic-view .page-wrap { max-width: 800px; }
+
+  .topic-header { margin-bottom: 20px; }
+  .topic-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .diff-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .diff-tab {
+    padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--sub); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .15s;
+  }
+  .diff-tab:hover { border-color: var(--accent); color: var(--text); }
+  .diff-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .diff-tab.complete { border-color: var(--green); color: var(--green); background: rgba(34,197,94,.1); }
+  .diff-tab .tab-count { font-size: 11px; opacity: .8; margin-left: 4px; }
+
+  /* Overview card */
+  .overview-card { margin-bottom: 22px; }
+  .overview-toggle { background: none; border: none; color: var(--sub); cursor: pointer; font-size: 12px; float: right; margin-top: -2px; }
+  .overview-toggle:hover { color: var(--text); }
+  .overview-card h3 { font-size: 13px; font-weight: 600; color: var(--accent2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .overview-summary { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+  .overview-section { margin-bottom: 14px; }
+  .overview-section h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 8px; }
+  .overview-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .overview-list li { font-size: 13px; line-height: 1.5; padding-left: 16px; position: relative; color: var(--text); }
+  .overview-list li::before { content: '›'; position: absolute; left: 0; color: var(--accent2); }
+  .overview-list.exam li::before { content: '★'; color: var(--yellow); font-size: 10px; top: 2px; }
+
+  /* Question card */
+  .q-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .q-header { background: var(--bg3); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid; }
-  .badge-slide { border-color: var(--border); color: var(--sub); }
-  .badge-mcq { border-color: #3b82f6; color: #60a5fa; }
-  .badge-short { border-color: var(--orange); color: var(--orange); }
-  .badge-applied { border-color: var(--accent); color: var(--accent2); }
+  .badge-slide   { border-color: var(--border); color: var(--sub); }
+  .badge-easy    { border-color: var(--blue);   color: #60a5fa; }
+  .badge-medium  { border-color: var(--yellow); color: var(--yellow); }
+  .badge-tricky  { border-color: var(--orange); color: var(--orange); }
   .badge-attempt { border-color: var(--border); color: var(--sub); }
 
-  .slide-img-wrap { padding: 16px 18px; border-bottom: 1px solid var(--border); }
-  .slide-img-wrap img { width: 100%; max-height: 280px; object-fit: contain; border-radius: 6px; background: #fff; display: block; }
-  .no-img { background: var(--bg3); border-radius: 6px; padding: 20px; text-align: center; color: var(--sub); font-size: 13px; }
+  .q-img-wrap { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .q-img-wrap img { width: 100%; max-height: 260px; object-fit: contain; border-radius: 6px; background: #fff; display: block; }
 
-  .concept-strip { background: rgba(124,58,237,.08); border-bottom: 1px solid var(--border); padding: 12px 18px; }
-  .concept-strip .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent2); margin-bottom: 3px; }
-  .concept-strip .name { font-size: 14px; font-weight: 600; }
+  .concept-strip { background: rgba(124,58,237,.08); border-bottom: 1px solid var(--border); padding: 10px 16px; }
+  .concept-strip .cs-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent2); margin-bottom: 2px; }
+  .concept-strip .cs-name  { font-size: 14px; font-weight: 600; }
 
-  .question-body { padding: 20px 18px; }
-  .question-body .q-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 10px; }
-  .question-body .q-text { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
-  pre.code-q { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin-bottom: 18px; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .q-body { padding: 18px 16px; }
+  .q-type-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 10px; }
+  .q-text { font-size: 15px; line-height: 1.65; margin-bottom: 16px; }
+  pre.code-q { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin-bottom: 16px; font-family: 'SF Mono','Fira Code',monospace; }
 
   /* MCQ options */
   .mcq-options { display: flex; flex-direction: column; gap: 8px; }
   .mcq-opt { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; cursor: pointer; transition: border-color .15s, background .15s; display: flex; align-items: flex-start; gap: 10px; text-align: left; width: 100%; color: var(--text); font-size: 14px; }
   .mcq-opt:hover { border-color: var(--accent); background: rgba(124,58,237,.08); }
   .mcq-opt.selected { border-color: var(--accent); background: rgba(124,58,237,.12); }
-  .mcq-opt.correct { border-color: var(--green); background: rgba(34,197,94,.1); }
-  .mcq-opt.wrong { border-color: var(--red); background: rgba(239,68,68,.1); }
-  .mcq-opt .opt-letter { font-weight: 700; color: var(--accent2); min-width: 20px; }
+  .mcq-opt.correct  { border-color: var(--green);  background: rgba(34,197,94,.1); }
+  .mcq-opt.wrong    { border-color: var(--red);    background: rgba(239,68,68,.1); }
+  .mcq-opt .opt-letter { font-weight: 700; color: var(--accent2); min-width: 20px; flex-shrink: 0; }
 
-  /* Textarea */
+  /* Text answer */
   .answer-area { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; color: var(--text); font-size: 14px; resize: vertical; min-height: 100px; font-family: inherit; line-height: 1.5; transition: border-color .15s; }
   .answer-area:focus { outline: none; border-color: var(--accent); }
   .answer-area:disabled { opacity: .6; }
 
-  /* Actions */
-  .question-actions { padding: 0 18px 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+  /* Question actions */
+  .q-actions { padding: 0 16px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
-  /* Feedback */
-  .feedback-panel { border-top: 1px solid var(--border); padding: 20px 18px; }
-  .score-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-  .score-big { font-size: 32px; font-weight: 800; }
+  /* Feedback panel */
+  .feedback-panel { border-top: 1px solid var(--border); padding: 18px 16px; }
+  .score-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .score-big { font-size: 30px; font-weight: 800; }
   .score-big.great { color: var(--green); }
-  .score-big.ok { color: var(--yellow); }
-  .score-big.bad { color: var(--red); }
+  .score-big.ok    { color: var(--yellow); }
+  .score-big.bad   { color: var(--red); }
   .score-bar-wrap { flex: 1; }
   .score-bar { background: var(--bg3); border-radius: 4px; height: 8px; overflow: hidden; }
   .score-bar-fill { height: 100%; border-radius: 4px; transition: width .5s; }
-
-  .feedback-text { color: var(--text); font-size: 14px; line-height: 1.6; margin-bottom: 14px; background: var(--bg3); padding: 12px 14px; border-radius: 8px; border-left: 3px solid var(--accent); }
-
-  .point-list { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .feedback-text { font-size: 14px; line-height: 1.6; margin-bottom: 12px; background: var(--bg3); padding: 12px 14px; border-radius: 8px; border-left: 3px solid var(--accent); }
+  .point-list { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
   .point-list li { font-size: 13px; display: flex; gap: 8px; align-items: flex-start; }
-  .point-list li .icon { flex-shrink: 0; margin-top: 1px; }
   .hit  { color: var(--green); }
   .miss { color: var(--red); }
   .misc { color: var(--orange); }
+  .followup-section { margin-top: 14px; }
+  .followup-section h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 10px; }
+  .followup-q { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
 
-  .followup-section { margin-top: 16px; }
-  .followup-section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 10px; }
-  .followup-q { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
-  .followup-answer { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: var(--text); font-size: 13px; resize: vertical; min-height: 60px; margin-top: 6px; font-family: inherit; }
-  .followup-answer:focus { outline: none; border-color: var(--accent); }
-
-  /* Map view */
-  .map-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .slide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-  .slide-tile { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; transition: border-color .15s, transform .15s; }
-  .slide-tile:hover { transform: translateY(-2px); border-color: var(--accent); }
-  .slide-tile img { width: 100%; height: 80px; object-fit: cover; background: #fff; display: block; }
-  .slide-tile .tile-foot { padding: 6px 8px; }
-  .slide-tile .tile-num { font-size: 11px; color: var(--sub); }
-  .tile-bar { height: 3px; border-radius: 0 0 2px 2px; }
-  .tile-bar.none { background: var(--border); }
-  .tile-bar.partial { background: var(--yellow); }
-  .tile-bar.good { background: var(--orange); }
-  .tile-bar.full { background: var(--green); }
-
-  /* Weaknesses */
-  .weakness-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-  .weakness-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
-  .weakness-item .wname { font-size: 13px; font-weight: 500; }
-  .weakness-item .wmeta { font-size: 12px; color: var(--sub); margin-top: 2px; }
-  .w-score { font-size: 18px; font-weight: 700; }
+  /* Completion callout */
+  .diff-complete { background: rgba(34,197,94,.08); border: 1px solid var(--green); border-radius: var(--radius); padding: 24px; text-align: center; }
+  .diff-complete .big { font-size: 40px; margin-bottom: 12px; }
+  .diff-complete h3 { font-size: 18px; margin-bottom: 6px; color: var(--green); }
+  .diff-complete p { color: var(--sub); font-size: 13px; margin-bottom: 16px; }
 
   /* Misc */
-  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 14px; margin-top: 28px; }
   .empty { text-align: center; padding: 48px; color: var(--sub); }
   .empty .icon { font-size: 40px; margin-bottom: 10px; }
-  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-size: 13px; z-index: 100; animation: fadein .3s; }
-  @keyframes fadein { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
-  .mastery-complete { text-align: center; padding: 60px 20px; }
-  .mastery-complete .big-icon { font-size: 64px; margin-bottom: 16px; }
-  .mastery-complete h2 { font-size: 26px; margin-bottom: 8px; }
-  .mastery-complete p { color: var(--sub); }
+  .pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+  .pill.green  { border-color: var(--green);  color: var(--green); }
+  .pill.yellow { border-color: var(--yellow); color: var(--yellow); }
+  .pill.accent { border-color: var(--accent); color: var(--accent2); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-size: 13px; z-index: 200; animation: fadein .3s; }
+  @keyframes fadein { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @media (max-width: 600px) {
+    .topic-grid { grid-template-columns: repeat(2, 1fr); }
+    .page-wrap { padding: 18px 14px; }
+  }
 </style>
 </head>
 <body>
@@ -189,97 +234,118 @@
   <div id="header-info"></div>
 </header>
 
-<!-- HOME -->
+<!-- ── HOME ────────────────────────────────────────────────────── -->
 <div class="view active" id="home-view">
-  <div class="upload-zone card" id="upload-zone">
-    <input type="file" id="file-input" accept=".pdf" style="display:none">
-    <div class="icon">📄</div>
-    <strong>Upload lecture slides</strong>
-    <p>Drag & drop a PDF, or click to select</p>
-  </div>
-  <p class="section-title">Your Decks</p>
-  <div class="deck-grid" id="deck-list">
-    <div class="empty"><div class="icon">📚</div><p>No decks yet — upload a PDF to get started</p></div>
+  <div class="page-wrap">
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".pdf" style="display:none">
+      <div class="icon">📄</div>
+      <strong>Upload lecture slides</strong>
+      <p>Drag & drop a PDF, or click to select</p>
+    </div>
+    <p class="section-label" style="margin-top:28px">Your Decks</p>
+    <div class="deck-grid" id="deck-list">
+      <div class="empty"><div class="icon">📚</div><p>No decks yet — upload a PDF to get started</p></div>
+    </div>
   </div>
 </div>
 
-<!-- PROCESSING -->
+<!-- ── PROCESSING ──────────────────────────────────────────────── -->
 <div class="view" id="processing-view">
-  <div class="card">
-    <div class="spinner"></div>
-    <h2 id="proc-name">Processing...</h2>
-    <div class="prog-bar" style="max-width:400px;margin:20px auto;height:10px">
-      <div class="prog-fill" id="proc-bar" style="width:0%"></div>
+  <div class="page-wrap">
+    <div class="card" style="text-align:center;padding:40px">
+      <div class="spinner"></div>
+      <h2 id="proc-name" style="font-size:20px;margin-bottom:8px">Processing...</h2>
+      <div id="proc-bar-wrap"><div id="proc-bar" style="width:0%"></div></div>
+      <div id="proc-status">Starting...</div>
+      <p style="color:var(--sub);font-size:12px;margin-top:14px">Slides are rendered, grouped into topics, then questions are generated. Runs once and is cached.</p>
     </div>
-    <div id="proc-status">Starting pipeline...</div>
-    <p style="color:var(--sub);font-size:12px;margin-top:12px">Each slide is analyzed for concepts then questions are generated. This runs once and is cached forever.</p>
   </div>
 </div>
 
-<!-- STUDY -->
-<div class="view" id="study-view">
-  <div class="study-top">
-    <strong id="study-deck-label"></strong>
-    <span id="study-prog-pill" class="pill"></span>
-    <button class="btn btn-secondary btn-sm" onclick="showMap()">Slide Map</button>
-  </div>
+<!-- ── ROADMAP ─────────────────────────────────────────────────── -->
+<div class="view" id="roadmap-view">
+  <div class="page-wrap">
+    <div class="roadmap-header">
+      <div>
+        <h2 id="roadmap-title">Topics</h2>
+        <div class="sub" id="roadmap-sub"></div>
+      </div>
+      <div class="actions">
+        <span id="roadmap-pct" class="pill"></span>
+      </div>
+    </div>
+    <div class="topic-grid" id="topic-grid"></div>
 
-  <div class="study-card" id="study-card">
-    <!-- dynamically populated -->
+    <p class="section-label">Weaknesses to Work On</p>
+    <div class="weakness-list" id="weakness-list">
+      <p style="color:var(--sub);font-size:13px">Keep studying to see your weaknesses here.</p>
+    </div>
   </div>
 </div>
 
-<!-- MAP -->
-<div class="view" id="map-view">
-  <div class="map-header">
-    <div>
-      <h2 id="map-deck-name" style="font-size:18px;margin-bottom:4px"></h2>
-      <p style="color:var(--sub);font-size:13px">Click a slide to jump to it</p>
+<!-- ── TOPIC STUDY ─────────────────────────────────────────────── -->
+<div class="view" id="topic-view">
+  <div class="page-wrap">
+    <div class="topic-header">
+      <h2 id="topic-title">Topic</h2>
+      <div class="diff-tabs" id="diff-tabs"></div>
     </div>
-    <button class="btn btn-primary" onclick="showStudy()">Continue Studying</button>
+
+    <!-- Overview -->
+    <div class="card overview-card" id="overview-card">
+      <h3>
+        Overview
+        <button class="overview-toggle" id="overview-toggle" onclick="toggleOverview()">Hide ▲</button>
+      </h3>
+      <div id="overview-body">
+        <div class="spinner" style="width:24px;height:24px;border-width:2px;margin:0 0 0 0"></div>
+      </div>
+    </div>
+
+    <!-- Question area -->
+    <div id="question-area"></div>
   </div>
-
-  <p class="section-title">Slide Mastery</p>
-  <div class="slide-grid" id="slide-grid"></div>
-
-  <p class="section-title">Weaknesses to Fix</p>
-  <div class="weakness-list" id="weakness-list"></div>
 </div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
+// ── State ───────────────────────────────────────────────────────────────────
 const S = {
-  view: 'home',
-  deckId: null,
-  deckName: '',
-  question: null,
-  attempt: 1,
-  pollingTimer: null,
-  answerSubmitted: false,
-  followupAnswers: {},
+  view:             'home',
+  deckId:           null,
+  deckName:         '',
+  topicId:          null,
+  topicName:        '',
+  topicStats:       {},   // { easy: {total,mastered}, medium: {...}, tricky: {...} }
+  currentDiff:      'easy',
+  question:         null,
+  attempt:          1,
+  answerSubmitted:  false,
+  overviewVisible:  true,
+  pollingTimer:     null,
+  selectedMCQ:      null,
 };
 
-// ── View switching ─────────────────────────────────────────────────────────
+// ── Routing ─────────────────────────────────────────────────────────────────
 function show(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  S.view = id.replace('-view','');
+  S.view = id.replace('-view', '');
 }
-
 function goBack() {
-  if (S.view === 'study' || S.view === 'map') showHome();
+  if (S.view === 'roadmap') showHome();
+  else if (S.view === 'topic') showRoadmap(S.deckId, S.deckName);
 }
-
-function setHeader(info='', showBack=false) {
+function setHeader(showBack, info = '') {
   document.getElementById('back-btn').style.display = showBack ? '' : 'none';
   document.getElementById('header-info').innerHTML = info;
 }
 
-// ── Home ───────────────────────────────────────────────────────────────────
+// ── Home ────────────────────────────────────────────────────────────────────
 async function showHome() {
   clearPolling();
   show('home-view');
-  setHeader('');
+  setHeader(false);
   await loadDecks();
 }
 
@@ -292,37 +358,36 @@ async function loadDecks() {
   }
   el.innerHTML = decks.map(d => {
     const pct = d.total_questions ? Math.round(d.mastered_questions / d.total_questions * 100) : 0;
-    const statusBadge = d.status === 'done' ? '' :
-      `<div class="status-badge ${d.status}">${d.status === 'processing' ? `Processing ${d.processed_slides}/${d.total_slides} slides...` : d.status}</div>`;
-    const canStudy     = d.status === 'done';
-    const needsReproc  = d.status === 'done' && d.total_questions === 0;
-    return `<div class="deck-card">
+    const isProcessing = d.status === 'processing';
+    const isDone       = d.status === 'done';
+    const needsReproc  = isDone && d.total_questions === 0;
+    const statusBadge  = !isDone
+      ? `<div class="status-badge ${d.status}">${isProcessing ? `Processing ${d.processed_slides}/${d.total_slides}...` : d.status}</div>`
+      : '';
+    return `<div class="deck-card" onclick="${isDone ? `showRoadmap(${d.id},'${esc(d.name)}')` : ''}">
       <h3 title="${d.name}">${d.name}</h3>
       <div class="deck-meta">${d.total_slides} slides · ${d.total_questions} questions</div>
-      <div class="prog-bar"><div class="prog-fill ${pct===100?'complete':''}" style="width:${pct}%"></div></div>
-      <div style="font-size:12px;color:var(--sub);margin-top:6px">${pct}% mastered (${d.mastered_questions}/${d.total_questions})</div>
+      <div class="prog-bar"><div class="prog-fill ${pct===100?'done':''}" style="width:${pct}%"></div></div>
+      <div style="font-size:12px;color:var(--sub);margin-top:5px">${pct}% mastered</div>
       ${statusBadge}
-      ${needsReproc ? `<div class="status-badge error" style="margin-top:6px">0 questions generated — click Fix to retry</div>` : ''}
-      <div class="deck-actions">
-        <button class="btn btn-primary btn-sm" ${canStudy?'':'disabled'} onclick="startStudy(${d.id},'${esc(d.name)}')">Study</button>
-        <button class="btn btn-secondary btn-sm" ${canStudy?'':'disabled'} onclick="startMap(${d.id},'${esc(d.name)}')">Map</button>
+      ${needsReproc ? `<div class="status-badge error" style="margin-top:6px">0 questions — click Fix</div>` : ''}
+      <div class="deck-actions" onclick="event.stopPropagation()">
+        ${isDone && !needsReproc ? `<button class="btn btn-primary btn-sm" onclick="showRoadmap(${d.id},'${esc(d.name)}')">Open Roadmap</button>` : ''}
         ${needsReproc ? `<button class="btn btn-secondary btn-sm" onclick="reprocessDeck(${d.id},'${esc(d.name)}')">Fix Questions</button>` : ''}
-        ${d.status==='processing' ? `<button class="btn btn-secondary btn-sm" onclick="watchProcessing(${d.id},'${esc(d.name)}')">Watch</button>` : ''}
+        ${isProcessing ? `<button class="btn btn-secondary btn-sm" onclick="watchProcessing(${d.id},'${esc(d.name)}')">Watch</button>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
-// ── Upload ─────────────────────────────────────────────────────────────────
+// ── Upload ───────────────────────────────────────────────────────────────────
 const uploadZone = document.getElementById('upload-zone');
 const fileInput  = document.getElementById('file-input');
-
 uploadZone.addEventListener('click', () => fileInput.click());
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
 uploadZone.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadZone.classList.remove('drag');
+  e.preventDefault(); uploadZone.classList.remove('drag');
   const f = e.dataTransfer.files[0];
   if (f && f.name.endsWith('.pdf')) uploadFile(f);
 });
@@ -333,7 +398,7 @@ async function uploadFile(file) {
   fd.append('file', file);
   uploadZone.innerHTML = '<div class="spinner" style="margin:0 auto"></div><p style="margin-top:10px;color:var(--sub)">Uploading...</p>';
   try {
-    const res = await fetch('/upload', { method: 'POST', body: fd });
+    const res  = await fetch('/upload', { method: 'POST', body: fd });
     const data = await res.json();
     watchProcessing(data.deck_id, data.name);
   } catch(e) {
@@ -346,7 +411,8 @@ function resetUploadZone() {
   uploadZone.innerHTML = `<input type="file" id="file-input" accept=".pdf" style="display:none">
     <div class="icon">📄</div><strong>Upload lecture slides</strong><p>Drag & drop a PDF, or click to select</p>`;
   document.getElementById('file-input').addEventListener('change', () => {
-    if (document.getElementById('file-input').files[0]) uploadFile(document.getElementById('file-input').files[0]);
+    const fi = document.getElementById('file-input');
+    if (fi.files[0]) uploadFile(fi.files[0]);
   });
 }
 
@@ -355,12 +421,11 @@ async function reprocessDeck(deckId, name) {
   watchProcessing(deckId, name);
 }
 
-// ── Processing ─────────────────────────────────────────────────────────────
+// ── Processing ───────────────────────────────────────────────────────────────
 function watchProcessing(deckId, name) {
-  S.deckId = deckId;
-  S.deckName = name;
+  S.deckId = deckId; S.deckName = name;
   show('processing-view');
-  setHeader('', true);
+  setHeader(true);
   document.getElementById('proc-name').textContent = name;
   pollProcessing(deckId);
 }
@@ -372,15 +437,12 @@ function pollProcessing(deckId) {
     const pct = d.total_slides ? Math.round(d.processed_slides / d.total_slides * 100) : 0;
     document.getElementById('proc-bar').style.width = pct + '%';
     document.getElementById('proc-status').textContent =
-      d.status === 'done'  ? 'Done! Redirecting to study...' :
-      d.status === 'error' ? 'Error during processing. Check server logs.' :
-      d.processed_slides === 0 ? `Phase 1: Rendering slides...` :
-      pct < 50             ? `Phase 2: Grouping slides by topic...` :
-      `Phase 3: Extracting concepts & questions (${d.processed_slides}/${d.total_slides} slides)...`;
-    if (d.status === 'done') {
-      clearPolling();
-      setTimeout(() => startStudy(deckId, d.name), 1200);
-    }
+      d.status === 'done'  ? 'Done! Opening roadmap...' :
+      d.status === 'error' ? 'Error — check server logs.' :
+      d.processed_slides === 0 ? 'Phase 1: Rendering slides...' :
+      pct < 50 ? 'Phase 2: Grouping slides by topic...' :
+      `Phase 3: Extracting concepts & generating questions (${d.processed_slides}/${d.total_slides})...`;
+    if (d.status === 'done') { clearPolling(); setTimeout(() => showRoadmap(deckId, d.name), 1200); }
     if (d.status === 'error') clearPolling();
   }, 2500);
 }
@@ -389,104 +451,276 @@ function clearPolling() {
   if (S.pollingTimer) { clearInterval(S.pollingTimer); S.pollingTimer = null; }
 }
 
-// ── Study ──────────────────────────────────────────────────────────────────
-async function startStudy(deckId, name) {
+// ── Roadmap ──────────────────────────────────────────────────────────────────
+async function showRoadmap(deckId, name) {
   clearPolling();
-  S.deckId = deckId;
-  S.deckName = name;
-  show('study-view');
-  document.getElementById('study-deck-label').textContent = name;
-  setHeader('', true);
-  await loadNextQuestion();
+  S.deckId = deckId; S.deckName = name;
+  show('roadmap-view');
+  setHeader(true, `<span class="pill">${name}</span>`);
+  document.getElementById('roadmap-title').textContent = name;
+  document.getElementById('roadmap-sub').textContent = 'Click a topic to study it';
+  await loadRoadmap(deckId);
 }
 
-async function loadNextQuestion(targetSlide = null) {
-  S.answerSubmitted = false;
-  S.attempt = 1;
-  S.followupAnswers = {};
-  document.getElementById('study-card').innerHTML = '<div style="padding:40px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>';
-  const url = targetSlide ? `/study/next/${S.deckId}?slide=${targetSlide}` : `/study/next/${S.deckId}`;
-  const q = await api(url);
-  if (q.done) {
-    document.getElementById('study-card').innerHTML = `
-      <div class="mastery-complete">
-        <div class="big-icon">🎉</div>
-        <h2>Deck Mastered!</h2>
-        <p style="margin-top:8px">You've mastered all concepts in this deck.</p>
-        <button class="btn btn-primary" style="margin-top:20px" onclick="showHome()">Back to Decks</button>
-      </div>`;
-    document.getElementById('study-prog-pill').textContent = '100% mastered';
-    document.getElementById('study-prog-pill').className = 'pill green';
+async function loadRoadmap(deckId) {
+  const [topics, weaknesses, decks] = await Promise.all([
+    api(`/deck/${deckId}/topics`),
+    api(`/weaknesses/${deckId}`),
+    api('/decks'),
+  ]);
+
+  // Overall progress pill
+  const deck = decks.find(d => d.id === deckId);
+  if (deck) {
+    const pct = deck.total_questions ? Math.round(deck.mastered_questions / deck.total_questions * 100) : 0;
+    const pctEl = document.getElementById('roadmap-pct');
+    pctEl.textContent = `${pct}% mastered`;
+    pctEl.className = 'pill ' + (pct >= 80 ? 'green' : pct >= 40 ? 'yellow' : 'accent');
+  }
+
+  // Topic grid
+  const grid = document.getElementById('topic-grid');
+  if (!topics.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <div class="icon">🗺️</div>
+      <p>No topics found. This deck may have been processed before the roadmap feature was added.<br>
+      <strong>Delete study.db and re-upload the PDF</strong> to get the full roadmap experience.</p>
+    </div>`;
+  } else {
+    grid.innerHTML = topics.map(t => renderTopicCard(t)).join('');
+  }
+
+  // Weaknesses
+  const wlist = document.getElementById('weakness-list');
+  if (!weaknesses.length) {
+    wlist.innerHTML = '<p style="color:var(--sub);font-size:13px">No weaknesses yet — keep studying!</p>';
+  } else {
+    wlist.innerHTML = weaknesses.map(w => `
+      <div class="weakness-item">
+        <div>
+          <div class="wname">${esc(w.concept)}</div>
+          <div class="wmeta">${esc(w.topic_name || '')} · ${w.attempts} attempts · ${diffLabel(w.question_type)}</div>
+        </div>
+        <div class="w-score" style="color:${w.avg_score >= 7 ? 'var(--yellow)' : 'var(--red)'}">${w.avg_score.toFixed(1)}</div>
+      </div>`).join('');
+  }
+}
+
+function renderTopicCard(t) {
+  const te = t.total_easy    || 0, me = t.mastered_easy    || 0;
+  const tm = t.total_medium  || 0, mm = t.mastered_medium  || 0;
+  const tt = t.total_tricky  || 0, mt = t.mastered_tricky  || 0;
+  const allDone = te && me === te && mm === tm && mt === tt;
+
+  const pctE = te ? me / te : 0;
+  const pctM = tm ? mm / tm : 0;
+  const pctT = tt ? mt / tt : 0;
+
+  const thumb = t.anchor_image_url
+    ? `<img class="tc-thumb" src="${t.anchor_image_url}" alt="${esc(t.name)}" loading="lazy">`
+    : `<div class="tc-no-thumb">📋</div>`;
+
+  return `<div class="topic-card ${allDone?'complete':''}" onclick="openTopic(${t.id},'${esc(t.name)}')">
+    ${thumb}
+    <div class="tc-body">
+      <div class="tc-name">${esc(t.name)}</div>
+      <div class="tc-progress">
+        <div class="tc-diff-row">
+          <span class="tc-diff-label">Easy</span>
+          <div class="tc-diff-bar"><div class="tc-diff-fill easy ${pctE===1?'done':''}" style="width:${pctE*100}%"></div></div>
+          <span class="tc-diff-count">${me}/${te}</span>
+        </div>
+        <div class="tc-diff-row">
+          <span class="tc-diff-label">Medium</span>
+          <div class="tc-diff-bar"><div class="tc-diff-fill medium ${pctM===1?'done':''}" style="width:${pctM*100}%"></div></div>
+          <span class="tc-diff-count">${mm}/${tm}</span>
+        </div>
+        <div class="tc-diff-row">
+          <span class="tc-diff-label">Tricky</span>
+          <div class="tc-diff-bar"><div class="tc-diff-fill tricky ${pctT===1?'done':''}" style="width:${pctT*100}%"></div></div>
+          <span class="tc-diff-count">${mt}/${tt}</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Topic Study ──────────────────────────────────────────────────────────────
+async function openTopic(topicId, topicName) {
+  S.topicId   = topicId;
+  S.topicName = topicName;
+  S.currentDiff = 'easy';
+  S.overviewVisible = true;
+  show('topic-view');
+  setHeader(true, `<span class="pill">${esc(S.deckName)}</span>`);
+  document.getElementById('topic-title').textContent = topicName;
+  document.getElementById('overview-toggle').textContent = 'Hide ▲';
+  document.getElementById('overview-body').innerHTML =
+    '<div class="spinner" style="width:24px;height:24px;border-width:2px"></div>';
+
+  // Load topic overview + stats in parallel
+  const [topicData, stats] = await Promise.all([
+    api(`/topic/${topicId}`),
+    getTopicStats(topicId),
+  ]);
+  S.topicStats = stats;
+
+  renderOverview(topicData.overview);
+  renderDiffTabs();
+  await loadTopicQuestion();
+}
+
+async function getTopicStats(topicId) {
+  // Fetch per-difficulty totals from deck topics endpoint
+  const topics = await api(`/deck/${S.deckId}/topics`);
+  const t = topics.find(x => x.id === topicId) || {};
+  return {
+    easy:   { total: t.total_easy   || 0, mastered: t.mastered_easy   || 0 },
+    medium: { total: t.total_medium || 0, mastered: t.mastered_medium || 0 },
+    tricky: { total: t.total_tricky || 0, mastered: t.mastered_tricky || 0 },
+  };
+}
+
+function renderOverview(ov) {
+  if (!ov) {
+    document.getElementById('overview-body').innerHTML = '<p style="color:var(--sub);font-size:13px">No overview available.</p>';
     return;
   }
+  const signals = (ov.exam_signals || []).map(s => `<li>${esc(s)}</li>`).join('');
+  const items   = (ov.key_items || []).map(s => `<li>${esc(s)}</li>`).join('');
+  document.getElementById('overview-body').innerHTML = `
+    <p class="overview-summary">${esc(ov.summary || '')}</p>
+    ${signals ? `<div class="overview-section">
+      <h4>Exam Signals</h4>
+      <ul class="overview-list exam">${signals}</ul>
+    </div>` : ''}
+    ${items ? `<div class="overview-section">
+      <h4>Key Items</h4>
+      <ul class="overview-list">${items}</ul>
+    </div>` : ''}`;
+}
+
+function toggleOverview() {
+  S.overviewVisible = !S.overviewVisible;
+  document.getElementById('overview-body').style.display = S.overviewVisible ? '' : 'none';
+  document.getElementById('overview-toggle').textContent = S.overviewVisible ? 'Hide ▲' : 'Show ▼';
+}
+
+function renderDiffTabs() {
+  const diffs = ['easy', 'medium', 'tricky'];
+  const labels = { easy: 'Easy', medium: 'Medium', tricky: 'Tricky' };
+  document.getElementById('diff-tabs').innerHTML = diffs.map(d => {
+    const st = S.topicStats[d] || { total: 0, mastered: 0 };
+    const done = st.total && st.mastered === st.total;
+    const cls = done ? 'diff-tab complete' : d === S.currentDiff ? 'diff-tab active' : 'diff-tab';
+    const countStr = st.total ? ` <span class="tab-count">${st.mastered}/${st.total}${done?' ✓':''}</span>` : '';
+    return `<button class="${cls}" onclick="switchDiff('${d}')">${labels[d]}${countStr}</button>`;
+  }).join('');
+}
+
+async function switchDiff(diff) {
+  S.currentDiff = diff;
+  renderDiffTabs();
+  await loadTopicQuestion();
+}
+
+async function loadTopicQuestion() {
+  S.answerSubmitted = false;
+  S.attempt = 1;
+  S.selectedMCQ = null;
+  document.getElementById('question-area').innerHTML =
+    '<div style="padding:32px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>';
+
+  const url = `/study/next/${S.deckId}?topic_id=${S.topicId}&difficulty=${S.currentDiff}`;
+  const q = await api(url);
+
+  if (q.done) {
+    renderDiffComplete();
+    return;
+  }
+
+  // Update stats
+  if (q.scope_total !== undefined) {
+    S.topicStats[S.currentDiff] = { total: q.scope_total, mastered: q.scope_mastered };
+    renderDiffTabs();
+  }
+
   S.question = q;
   renderQuestion(q);
 }
 
-function renderQuestion(q) {
-  const pct = q.deck_total ? Math.round(q.deck_mastered / q.deck_total * 100) : 0;
-  document.getElementById('study-prog-pill').textContent = `${pct}% mastered`;
-  document.getElementById('study-prog-pill').className = 'pill ' + (pct >= 80 ? 'green' : pct >= 40 ? 'yellow' : 'accent');
+function renderDiffComplete() {
+  const nextMap = { easy: 'medium', medium: 'tricky', tricky: null };
+  const next = nextMap[S.currentDiff];
+  const label = { easy: 'Easy', medium: 'Medium', tricky: 'Tricky' }[S.currentDiff];
+  document.getElementById('question-area').innerHTML = `
+    <div class="diff-complete">
+      <div class="big">${S.currentDiff === 'tricky' ? '🎉' : '✅'}</div>
+      <h3>${label} Questions Complete!</h3>
+      <p>${next ? `Great work. Ready to level up?` : `You've mastered all questions for this topic!`}</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        ${next ? `<button class="btn btn-green" onclick="switchDiff('${next}')">Try ${next.charAt(0).toUpperCase()+next.slice(1)} Questions →</button>` : ''}
+        <button class="btn btn-secondary" onclick="showRoadmap(${S.deckId},'${esc(S.deckName)}')">← Back to Roadmap</button>
+      </div>
+    </div>`;
+}
 
-  const typeBadge = {
-    mcq:          '<span class="badge badge-mcq">Multiple Choice</span>',
-    short_answer: '<span class="badge badge-short">Short Answer</span>',
-    applied:      '<span class="badge badge-applied">Applied Reasoning</span>',
-  }[q.question_type];
+function renderQuestion(q) {
+  const diffLabel = { easy: 'Easy', medium: 'Medium', tricky: 'Tricky' }[q.difficulty] || q.difficulty;
+  const diffBadge = `<span class="badge badge-${q.difficulty}">${diffLabel}</span>`;
+  const qd = q.question_data;
 
   const imgHtml = q.image_url
-    ? `<div class="slide-img-wrap"><img src="${q.image_url}" alt="Slide ${q.slide_number}" loading="lazy"></div>`
-    : `<div class="slide-img-wrap"><div class="no-img">No image for this slide</div></div>`;
+    ? `<div class="q-img-wrap"><img src="${q.image_url}" alt="Slide ${q.slide_number}" loading="lazy"></div>`
+    : '';
 
-  const qd = q.question_data;
   let inputHtml = '';
-
   if (q.question_type === 'mcq') {
     inputHtml = `<div class="mcq-options">` +
       (qd.options || []).map(opt => {
         const letter = opt.trim()[0];
         return `<button class="mcq-opt" onclick="selectMCQ(this,'${letter}')" data-letter="${letter}">
           <span class="opt-letter">${letter}</span>
-          <span>${opt.substring(2).trim()}</span>
+          <span>${esc(opt.substring(2).trim())}</span>
         </button>`;
       }).join('') + `</div>`;
   } else {
-    const questionText = qd.question || '';
-    const isCode = questionText.includes('\n') && (questionText.includes('{') || questionText.includes('int ') || questionText.includes('char '));
-    inputHtml = (isCode ? `<pre class="code-q">${esc(questionText)}</pre>` : `<p class="q-text">${questionText}</p>`) +
-      `<textarea class="answer-area" id="answer-input" placeholder="Type your answer here..." rows="5"></textarea>`;
+    const qtext = qd.question || '';
+    const isCode = qtext.includes('\n') && (qtext.includes('{') || qtext.includes('int ') || qtext.includes('char ') || qtext.includes('#include'));
+    inputHtml = (isCode ? `<pre class="code-q">${esc(qtext)}</pre>` : `<p class="q-text">${qtext.replace(/\n/g,'<br>')}</p>`) +
+      `<textarea class="answer-area" id="answer-input" placeholder="Type your answer here…" rows="5"></textarea>`;
   }
 
-  document.getElementById('study-card').innerHTML = `
-    <div class="slide-header">
-      <span class="badge badge-slide">Slide ${q.slide_number}</span>
-      ${typeBadge}
-      <span class="badge badge-attempt" id="attempt-badge">Attempt 1</span>
-    </div>
-    ${imgHtml}
-    <div class="concept-strip">
-      <div class="label">Concept</div>
-      <div class="name">${q.concept}</div>
-    </div>
-    <div class="question-body">
-      <div class="q-label">${q.question_type === 'mcq' ? 'Multiple Choice' : q.question_type === 'short_answer' ? 'Short Answer' : 'Applied Reasoning'}</div>
-      ${q.question_type !== 'mcq' ? `<p class="q-text">${(qd.question||'').replace(/\n/g,'<br>')}</p>` : ''}
-      ${inputHtml}
-    </div>
-    <div class="question-actions">
-      <button class="btn btn-primary" id="submit-btn" onclick="submitAnswer()" ${q.question_type==='mcq'?'disabled':''}>Submit</button>
-      <button class="btn btn-secondary" id="skip-btn" onclick="loadNextQuestion()">Skip</button>
-    </div>
-    <div id="feedback-area" style="display:none"></div>
-  `;
+  document.getElementById('question-area').innerHTML = `
+    <div class="q-card">
+      <div class="q-header">
+        <span class="badge badge-slide">Slide ${q.slide_number}</span>
+        ${diffBadge}
+        <span class="badge badge-attempt" id="attempt-badge">Attempt ${S.attempt}</span>
+      </div>
+      ${imgHtml}
+      <div class="concept-strip">
+        <div class="cs-label">Concept</div>
+        <div class="cs-name">${esc(q.concept)}</div>
+      </div>
+      <div class="q-body">
+        <div class="q-type-label">${q.question_type === 'mcq' ? 'Multiple Choice' : q.question_type === 'short_answer' ? 'Short Answer' : 'Applied Reasoning'}</div>
+        ${q.question_type !== 'mcq' ? `<p class="q-text">${(qd.question||'').replace(/\n/g,'<br>')}</p>` : ''}
+        ${inputHtml}
+      </div>
+      <div class="q-actions" id="q-actions">
+        <button class="btn btn-primary" id="submit-btn" onclick="submitAnswer()" ${q.question_type==='mcq'?'disabled':''}>Submit</button>
+        <button class="btn btn-secondary" id="skip-btn" onclick="skipQuestion()">Skip</button>
+      </div>
+      <div id="feedback-area" style="display:none"></div>
+    </div>`;
 }
 
-let selectedMCQLetter = null;
 function selectMCQ(el, letter) {
   if (S.answerSubmitted) return;
   document.querySelectorAll('.mcq-opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
-  selectedMCQLetter = letter;
+  S.selectedMCQ = letter;
   document.getElementById('submit-btn').disabled = false;
 }
 
@@ -494,18 +728,19 @@ async function submitAnswer() {
   if (S.answerSubmitted) return;
   const q = S.question;
   let userAnswer = '';
+
   if (q.question_type === 'mcq') {
-    if (!selectedMCQLetter) return;
-    userAnswer = selectedMCQLetter;
+    if (!S.selectedMCQ) return;
+    userAnswer = S.selectedMCQ;
   } else {
     const ta = document.getElementById('answer-input');
-    userAnswer = ta.value.trim();
+    userAnswer = ta ? ta.value.trim() : '';
     if (!userAnswer) return;
-    ta.disabled = true;
+    if (ta) ta.disabled = true;
   }
 
   document.getElementById('submit-btn').disabled = true;
-  document.getElementById('submit-btn').textContent = 'Grading...';
+  document.getElementById('submit-btn').textContent = 'Grading…';
   S.answerSubmitted = true;
 
   const result = await api('/study/answer', 'POST', {
@@ -517,98 +752,79 @@ async function submitAnswer() {
   });
 
   renderFeedback(result, q.question_type, userAnswer);
+
+  // Refresh stats
+  const stats = await getTopicStats(S.topicId);
+  S.topicStats = stats;
+  renderDiffTabs();
+}
+
+function skipQuestion() {
+  loadTopicQuestion();
 }
 
 function renderFeedback(r, qtype, userAnswer) {
-  const score = r.score || 0;
+  const score = r.score ?? 0;
   const scoreClass = score >= 8 ? 'great' : score >= 5 ? 'ok' : 'bad';
-  const barColor = score >= 8 ? 'var(--green)' : score >= 5 ? 'var(--yellow)' : 'var(--red)';
+  const barColor   = score >= 8 ? 'var(--green)' : score >= 5 ? 'var(--yellow)' : 'var(--red)';
 
-  let html = `<div class="feedback-panel">`;
+  let html = '<div class="feedback-panel">';
 
   if (qtype === 'mcq') {
     const correct = r.correct || '';
-    html += `
-      <div class="score-row">
-        <div class="score-big ${r.is_correct ? 'great' : 'bad'}">${r.is_correct ? '✓' : '✗'}</div>
-        <div style="font-size:14px;color:var(--sub)">${r.is_correct ? 'Correct!' : `Wrong — correct answer is <strong style="color:var(--text)">${correct}</strong>`}</div>
-      </div>
-      <div class="feedback-text">${r.explanation || ''}</div>`;
-    // Mark the options
+    html += `<div class="score-row">
+      <div class="score-big ${r.is_correct ? 'great' : 'bad'}">${r.is_correct ? '✓' : '✗'}</div>
+      <div style="font-size:14px;color:var(--sub)">${r.is_correct ? 'Correct!' : `Wrong — correct answer is <strong style="color:var(--text)">${correct}</strong>`}</div>
+    </div>
+    <div class="feedback-text">${r.explanation || ''}</div>`;
     document.querySelectorAll('.mcq-opt').forEach(opt => {
-      const l = opt.dataset.letter;
-      if (l === correct) opt.classList.add('correct');
-      else if (l === userAnswer) opt.classList.add('wrong');
+      if (opt.dataset.letter === correct) opt.classList.add('correct');
+      else if (opt.dataset.letter === userAnswer) opt.classList.add('wrong');
     });
   } else {
     const hitPts  = r.hit_points || [];
     const missPts = r.missing_points || [];
     const misc    = r.misconceptions || [];
     const fuqs    = (r.follow_up_questions || []).slice(0, 2);
-
-    html += `
-      <div class="score-row">
-        <div class="score-big ${scoreClass}">${score}/10</div>
-        <div class="score-bar-wrap">
-          <div class="score-bar"><div class="score-bar-fill" style="width:${score*10}%;background:${barColor}"></div></div>
-          <div style="font-size:12px;color:var(--sub);margin-top:4px">${score >= 8 ? 'Mastery achieved' : score >= 5 ? 'Almost there' : 'Needs work'}</div>
-        </div>
+    html += `<div class="score-row">
+      <div class="score-big ${scoreClass}">${score}/10</div>
+      <div class="score-bar-wrap">
+        <div class="score-bar"><div class="score-bar-fill" style="width:${score*10}%;background:${barColor}"></div></div>
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">${score >= 8 ? 'Mastery achieved' : score >= 5 ? 'Almost there' : 'Needs work'}</div>
       </div>
-      <div class="feedback-text">${r.feedback || ''}</div>`;
-
+    </div>
+    <div class="feedback-text">${r.feedback || ''}</div>`;
     if (hitPts.length || missPts.length) {
-      html += `<ul class="point-list">`;
-      hitPts.forEach(p  => { html += `<li class="hit"><span class="icon">✓</span><span>${p}</span></li>`; });
-      missPts.forEach(p => { html += `<li class="miss"><span class="icon">✗</span><span>${p}</span></li>`; });
-      misc.forEach(p    => { html += `<li class="misc"><span class="icon">⚠</span><span>${p}</span></li>`; });
-      html += `</ul>`;
+      html += '<ul class="point-list">';
+      hitPts.forEach(p  => { html += `<li class="hit"><span>✓</span><span>${esc(p)}</span></li>`; });
+      missPts.forEach(p => { html += `<li class="miss"><span>✗</span><span>${esc(p)}</span></li>`; });
+      misc.forEach(p    => { html += `<li class="misc"><span>⚠</span><span>${esc(p)}</span></li>`; });
+      html += '</ul>';
     }
-
     if (fuqs.length && score < 8) {
-      html += `<div class="followup-section"><h4>Probe deeper — answer these:</h4>`;
-      fuqs.forEach((fq, i) => {
-        html += `<div class="followup-q">${fq}</div>
-          <textarea class="followup-answer" id="fuq-${i}" placeholder="Your answer..."></textarea>`;
+      html += `<div class="followup-section"><h4>Probe deeper — answer these follow-ups:</h4>`;
+      fuqs.forEach(fq => {
+        html += `<div class="followup-q">${esc(fq)}</div>`;
       });
-      html += `</div>`;
+      html += '</div>';
     }
   }
+  html += '</div>';
 
-  html += `</div>`;
   document.getElementById('feedback-area').innerHTML = html;
   document.getElementById('feedback-area').style.display = '';
 
-  // Refresh mastery % from server after grading
-  api(`/deck/${S.deckId}/status`).then(d => {
-    const total = d.total_questions || 0;
-    // Fetch fresh mastery count
-    api(`/decks`).then(decks => {
-      const deck = decks.find(x => x.id === S.deckId);
-      if (!deck) return;
-      const pct = deck.total_questions ? Math.round(deck.mastered_questions / deck.total_questions * 100) : 0;
-      document.getElementById('study-prog-pill').textContent = `${pct}% mastered`;
-      document.getElementById('study-prog-pill').className = 'pill ' + (pct >= 80 ? 'green' : pct >= 40 ? 'yellow' : 'accent');
-    });
-  });
-
-  // Update action buttons
-  const actionsEl = document.getElementById('submit-btn').parentElement;
-  if (qtype === 'mcq') {
-    // MCQ: auto-advance after 1.5s so they can read the explanation
-    setTimeout(() => { if (S.answerSubmitted) loadNextQuestion(); }, 1500);
-    actionsEl.innerHTML = `<button class="btn btn-primary" onclick="loadNextQuestion()">Next →</button>`;
-  } else if (score >= 8) {
-    actionsEl.innerHTML = `
-      <button class="btn btn-primary" onclick="loadNextQuestion()">Next Question →</button>
-      <button class="btn btn-secondary btn-sm" onclick="showMap()">Slide Map</button>`;
+  // Replace action buttons
+  const actions = document.getElementById('q-actions');
+  if (qtype === 'mcq' || score >= 8) {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="loadTopicQuestion()">Next Question →</button>
+      <button class="btn btn-secondary" onclick="showRoadmap(${S.deckId},'${esc(S.deckName)}')">Roadmap</button>`;
   } else if (S.attempt >= 3) {
-    actionsEl.innerHTML = `
-      <button class="btn btn-primary" onclick="loadNextQuestion()">Move On →</button>
-      <div style="font-size:12px;color:var(--sub);display:flex;align-items:center">3 attempts — will resurface later</div>`;
+    actions.innerHTML = `<button class="btn btn-primary" onclick="loadTopicQuestion()">Move On →</button>
+      <span style="font-size:12px;color:var(--sub)">3 attempts — will resurface later</span>`;
   } else {
-    actionsEl.innerHTML = `
-      <button class="btn btn-primary" onclick="retryAnswer()">Try Again (${3 - S.attempt} left)</button>
-      <button class="btn btn-secondary" onclick="loadNextQuestion()">Skip</button>`;
+    actions.innerHTML = `<button class="btn btn-primary" onclick="retryAnswer()">Try Again (${3 - S.attempt} left)</button>
+      <button class="btn btn-secondary" onclick="loadTopicQuestion()">Skip</button>`;
   }
 }
 
@@ -617,83 +833,15 @@ function retryAnswer() {
   S.answerSubmitted = false;
   document.getElementById('feedback-area').style.display = 'none';
   document.getElementById('attempt-badge').textContent = `Attempt ${S.attempt}`;
-
   const ta = document.getElementById('answer-input');
-  if (ta) {
-    ta.disabled = false;
-    ta.value = '';
-    ta.focus();
-  }
-  const actionsEl = document.querySelector('.question-actions');
-  actionsEl.innerHTML = `
+  if (ta) { ta.disabled = false; ta.value = ''; ta.focus(); }
+  document.getElementById('q-actions').innerHTML = `
     <button class="btn btn-primary" id="submit-btn" onclick="submitAnswer()">Submit</button>
-    <button class="btn btn-secondary" id="skip-btn" onclick="loadNextQuestion()">Skip</button>`;
+    <button class="btn btn-secondary" id="skip-btn" onclick="skipQuestion()">Skip</button>`;
 }
 
-// ── Map ────────────────────────────────────────────────────────────────────
-async function startMap(deckId, name) {
-  S.deckId   = deckId;
-  S.deckName = name;
-  show('map-view');
-  setHeader('', true);
-  document.getElementById('map-deck-name').textContent = name;
-  await loadMap(deckId);
-}
-
-function showMap() {
-  startMap(S.deckId, S.deckName);
-}
-
-function showStudy() {
-  startStudy(S.deckId, S.deckName);
-}
-
-async function loadMap(deckId) {
-  const [slides, weaknesses] = await Promise.all([
-    api(`/deck/${deckId}/slides`),
-    api(`/weaknesses/${deckId}`),
-  ]);
-
-  const grid = document.getElementById('slide-grid');
-  grid.innerHTML = slides.map(s => {
-    const pct = s.total_q ? s.mastered_q / s.total_q : 0;
-    const tierClass = pct === 0 ? 'none' : pct < 0.5 ? 'partial' : pct < 1 ? 'good' : 'full';
-    const imgEl = s.image_url
-      ? `<img src="${s.image_url}" alt="Slide ${s.slide_number}" loading="lazy">`
-      : `<div style="height:80px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--sub)">${s.slide_number}</div>`;
-    return `<div class="slide-tile" onclick="jumpToSlide(${s.slide_number})">
-      ${imgEl}
-      <div class="tile-bar ${tierClass}"></div>
-      <div class="tile-foot">
-        <div class="tile-num">Slide ${s.slide_number} · ${s.mastered_q}/${s.total_q}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  const wlist = document.getElementById('weakness-list');
-  if (!weaknesses.length) {
-    wlist.innerHTML = '<p style="color:var(--sub);font-size:13px">No weaknesses found yet — keep studying!</p>';
-  } else {
-    wlist.innerHTML = weaknesses.map(w => `
-      <div class="weakness-item">
-        <div>
-          <div class="wname">${w.concept}</div>
-          <div class="wmeta">Slide ${w.slide_number} · ${w.attempts} attempts · ${w.question_type.replace('_',' ')}</div>
-        </div>
-        <div class="w-score" style="color:${w.avg_score >= 7 ? 'var(--yellow)' : 'var(--red)'}">${w.avg_score.toFixed(1)}</div>
-      </div>`).join('');
-  }
-}
-
-async function jumpToSlide(slideNum) {
-  show('study-view');
-  document.getElementById('study-deck-label').textContent = S.deckName;
-  setHeader('', true);
-  await loadNextQuestion(slideNum);
-}
-
-// ── Utilities ──────────────────────────────────────────────────────────────
-async function api(path, method='GET', body=null) {
+// ── Utilities ────────────────────────────────────────────────────────────────
+async function api(path, method = 'GET', body = null) {
   const opts = { method, headers: {} };
   if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
   const res = await fetch(path, opts);
@@ -702,10 +850,14 @@ async function api(path, method='GET', body=null) {
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function toast(msg, dur=3000) {
+function diffLabel(qtype) {
+  return { mcq: 'Easy', short_answer: 'Medium', applied: 'Tricky' }[qtype] || qtype;
+}
+
+function toast(msg, dur = 3000) {
   const el = document.createElement('div');
   el.className = 'toast';
   el.textContent = msg;
@@ -713,7 +865,7 @@ function toast(msg, dur=3000) {
   setTimeout(() => el.remove(), dur);
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// ── Init ─────────────────────────────────────────────────────────────────────
 showHome();
 </script>
 </body>

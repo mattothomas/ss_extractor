@@ -51,10 +51,20 @@ def init_db():
             text_content TEXT,
             image_path   TEXT
         );
+        CREATE TABLE IF NOT EXISTS topics (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            deck_id         INTEGER REFERENCES decks(id) ON DELETE CASCADE,
+            name            TEXT NOT NULL,
+            order_num       INTEGER DEFAULT 0,
+            anchor_slide_id INTEGER REFERENCES slides(id),
+            overview_json   TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
+        );
         CREATE TABLE IF NOT EXISTS concepts (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             slide_id    INTEGER REFERENCES slides(id) ON DELETE CASCADE,
             deck_id     INTEGER REFERENCES decks(id) ON DELETE CASCADE,
+            topic_id    INTEGER REFERENCES topics(id),
             concept     TEXT,
             explanation TEXT,
             type        TEXT
@@ -81,16 +91,22 @@ def init_db():
             UNIQUE(question_id, question_type)
         );
         CREATE TABLE IF NOT EXISTS responses (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            question_id   INTEGER,
-            question_type TEXT,
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_id    INTEGER,
+            question_type  TEXT,
             attempt_number INTEGER,
-            user_answer   TEXT,
-            score         REAL,
-            feedback_json TEXT,
-            answered_at   TEXT DEFAULT (datetime('now'))
+            user_answer    TEXT,
+            score          REAL,
+            feedback_json  TEXT,
+            answered_at    TEXT DEFAULT (datetime('now'))
         );
     """)
+    # Migration: add topic_id to concepts if not present in older DBs
+    try:
+        conn.execute("ALTER TABLE concepts ADD COLUMN topic_id INTEGER REFERENCES topics(id)")
+        conn.commit()
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -123,13 +139,13 @@ GROUP_PROMPT = """You are organizing a CMPSC 311 (Systems Programming) lecture s
 Your job: group consecutive slides that cover the same topic, concept, or animated sequence into one unit.
 
 Rules for grouping:
-- Animation/build sequences: when the professor shows the same diagram/code building up over multiple slides (e.g., "Dynamic Memory in action" slides 1-4 where each slide adds one more arrow or label) → ONE group, anchor = the LAST slide (most complete state)
-- Same topic, multiple slides: e.g., "The Heap" across 3 slides introducing then expanding → ONE group
+- Animation/build sequences: when the professor shows the same diagram/code building up over multiple slides → ONE group, anchor = the LAST slide (most complete state)
+- Same topic, multiple slides: e.g., "The Heap" across 3 slides → ONE group
 - Clear topic change: new header/title that introduces a different concept → new group
 - Single standalone slide: fine as its own group
 
 Action per group:
-- "skip": title-only slides (course name + lecture topic + maybe a meme), pure administrative/logistics slides that talk about course structure ("in this class we will...", "in 473 you will..."), office hours, agenda
+- "skip": title-only slides (course name + lecture topic + meme), pure administrative/logistics slides, office hours, agenda slides, slides that say "in this class we will..." or "in 473 you will..."
 - "study": anything with definitions, code, mechanisms, diagrams, or facts that could appear on an exam
 
 IMPORTANT: Every slide number must appear in exactly one group. Do not drop any slides.
@@ -137,18 +153,8 @@ IMPORTANT: Every slide number must appear in exactly one group. Do not drop any 
 Return ONLY valid JSON (no markdown fences):
 {
   "groups": [
-    {
-      "slides": [1],
-      "anchor": 1,
-      "topic": "brief topic name",
-      "action": "skip"
-    },
-    {
-      "slides": [2, 3, 4],
-      "anchor": 4,
-      "topic": "Static vs automatic memory allocation",
-      "action": "study"
-    }
+    {"slides": [1], "anchor": 1, "topic": "brief topic name", "action": "skip"},
+    {"slides": [2, 3, 4], "anchor": 4, "topic": "Static vs automatic memory allocation", "action": "study"}
   ]
 }"""
 
@@ -229,13 +235,30 @@ Respond with ONLY valid JSON (no markdown fences):
 
 follow_up_questions must be empty array [] if score >= 8."""
 
+OVERVIEW_PROMPT = """You are writing a study guide entry for CMPSC 311 (Systems Programming).
+
+Topic: {topic}
+
+Concepts in this topic:
+{concepts_text}
+
+Slide text:
+{slide_text}
+
+Return ONLY valid JSON (no markdown fences):
+{{
+  "summary": "3-4 sentences explaining what this topic covers, how it works, and why it matters in systems programming",
+  "exam_signals": ["a specific thing likely to appear on an exam", "another likely tested item", "a third one"],
+  "key_items": ["key API call or rule with brief note, e.g. 'malloc(size_t n) — allocates n bytes on the heap, returns void* or NULL on failure'", "another key item"]
+}}"""
+
+# ── Difficulty mapping ─────────────────────────────────────────────────────────
+DIFFICULTY_TO_TYPE = {'easy': 'mcq', 'medium': 'short_answer', 'tricky': 'applied'}
+TYPE_TO_DIFFICULTY = {v: k for k, v in DIFFICULTY_TO_TYPE.items()}
+
 # ── Pipeline (sync, runs in background thread) ────────────────────────────────
 def group_slides_sync(slide_texts: list[dict]) -> list[dict]:
-    """
-    slide_texts: list of {slide_number, text}
-    Returns list of group dicts: {slides, anchor, topic, action}
-    """
-    all_nums   = [s["slide_number"] for s in slide_texts]
+    all_nums    = [s["slide_number"] for s in slide_texts]
     slides_block = "\n\n".join(
         f"=== Slide {s['slide_number']} ===\n{s['text'] or '(no text)'}"
         for s in slide_texts
@@ -249,7 +272,6 @@ def group_slides_sync(slide_texts: list[dict]) -> list[dict]:
             }]
         )
         groups = parse_json_response(msg.content[0].text).get("groups", [])
-        # Ensure every slide appears in exactly one group
         seen = {s for g in groups for s in g.get("slides", [])}
         for n in all_nums:
             if n not in seen:
@@ -265,7 +287,6 @@ def group_slides_sync(slide_texts: list[dict]) -> list[dict]:
         ]
 
 def extract_concepts_sync(combined_text: list[str], image_path: str, group_label: str) -> list[dict]:
-    """Extract concepts from a group of slides. Uses anchor slide image + combined text."""
     try:
         import base64 as _b64
         with open(image_path, "rb") as f:
@@ -309,13 +330,35 @@ def generate_questions_sync(concepts: list[dict]) -> list[dict]:
             continue
     return all_questions
 
-def _store_group_questions(conn, concepts: list[dict], anchor_slide_id: int, deck_id: int):
+def generate_topic_overview_sync(topic_name: str, concepts: list[dict], combined_text: str) -> dict:
+    concepts_text = "\n".join(
+        f"- {c.get('concept', '')}: {c.get('explanation', '')}"
+        for c in concepts[:15]
+    )
+    prompt = OVERVIEW_PROMPT.format(
+        topic=topic_name,
+        concepts_text=concepts_text[:3000],
+        slide_text=combined_text[:2000]
+    )
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return parse_json_response(msg.content[0].text)
+    except Exception as e:
+        print(f"  [!] Overview error ({topic_name}): {e}")
+        return {"summary": f"Topic: {topic_name}", "exam_signals": [], "key_items": []}
+
+def _store_group_questions(conn, concepts: list[dict], anchor_slide_id: int, deck_id: int, topic_id: int = None):
     """Insert concepts + questions + mastery rows for one group."""
     concept_ids = []
     for c in concepts:
         cur = conn.execute(
-            "INSERT INTO concepts (slide_id, deck_id, concept, explanation, type) VALUES (?,?,?,?,?)",
-            (anchor_slide_id, deck_id, c.get("concept",""), c.get("explanation",""), c.get("type","definition"))
+            "INSERT INTO concepts (slide_id, deck_id, topic_id, concept, explanation, type) VALUES (?,?,?,?,?,?)",
+            (anchor_slide_id, deck_id, topic_id,
+             c.get("concept", ""), c.get("explanation", ""), c.get("type", "definition"))
         )
         concept_ids.append(cur.lastrowid)
     conn.commit()
@@ -326,9 +369,9 @@ def _store_group_questions(conn, concepts: list[dict], anchor_slide_id: int, dec
         cur = conn.execute(
             "INSERT INTO questions (concept_id, slide_id, deck_id, mcq_json, short_answer_json, applied_json) VALUES (?,?,?,?,?,?)",
             (concept_ids[ci], anchor_slide_id, deck_id,
-             json.dumps(q["mcq"])         if q.get("mcq")          else None,
-             json.dumps(q["short_answer"]) if q.get("short_answer") else None,
-             json.dumps(q["applied"])      if q.get("applied")      else None)
+             json.dumps(q["mcq"])          if q.get("mcq")          else None,
+             json.dumps(q["short_answer"])  if q.get("short_answer") else None,
+             json.dumps(q["applied"])       if q.get("applied")      else None)
         )
         q_id = cur.lastrowid
         for qt in ("mcq", "short_answer", "applied"):
@@ -345,7 +388,7 @@ def process_pdf_background(deck_id: int, pdf_path: str):
         conn.commit()
         print(f"[Deck {deck_id}] Phase 1: Rendering {total} slides...")
 
-        # ── Phase 1: Render all slides, extract text, store in DB ─────────────
+        # ── Phase 1: Render all slides ─────────────────────────────────────────
         all_slide_data = []
         for i, page in enumerate(doc):
             slide_num = i + 1
@@ -353,10 +396,8 @@ def process_pdf_background(deck_id: int, pdf_path: str):
             pix = page.get_pixmap(matrix=mat)
             img_path = str(IMAGE_DIR / f"d{deck_id}_s{slide_num}.png")
             pix.save(img_path)
-
             raw_text = page.get_text("text")
             cleaned  = clean_text(raw_text)
-
             cur = conn.execute(
                 "INSERT INTO slides (deck_id, slide_number, text_content, image_path) VALUES (?,?,?,?)",
                 (deck_id, slide_num, "\n".join(cleaned), img_path)
@@ -369,7 +410,7 @@ def process_pdf_background(deck_id: int, pdf_path: str):
             })
         conn.commit()
 
-        # ── Phase 2: Group all slides by topic (one API call, text-only) ──────
+        # ── Phase 2: Group all slides ──────────────────────────────────────────
         print(f"[Deck {deck_id}] Phase 2: Grouping slides by topic...")
         slide_texts = [{"slide_number": s["slide_number"], "text": "\n".join(s["text_lines"])}
                        for s in all_slide_data]
@@ -379,21 +420,19 @@ def process_pdf_background(deck_id: int, pdf_path: str):
         study_groups = [g for g in groups if g.get("action") == "study"]
         skip_groups  = [g for g in groups if g.get("action") != "study"]
         print(f"[Deck {deck_id}] {len(study_groups)} study groups, {len(skip_groups)} skipped")
-        for sg in skip_groups:
-            print(f"  Skipped: slides {sg['slides']} — {sg.get('topic','')}")
 
         # ── Phase 3: Process each study group ─────────────────────────────────
         print(f"[Deck {deck_id}] Phase 3: Processing {len(study_groups)} groups...")
         for gi, group in enumerate(study_groups):
-            anchor_num  = group.get("anchor")
-            topic       = group.get("topic", f"Group {gi+1}")
-            slide_nums  = group.get("slides", [anchor_num])
+            anchor_num = group.get("anchor")
+            topic      = group.get("topic", f"Group {gi+1}")
+            slide_nums = group.get("slides", [anchor_num])
 
             if anchor_num not in slide_lookup:
                 continue
             anchor = slide_lookup[anchor_num]
 
-            # Combine text from all slides in the group, deduped, preserving order
+            # Combine text from all slides in group, deduped
             seen_lines, combined = set(), []
             for sn in slide_nums:
                 for line in slide_lookup.get(sn, {}).get("text_lines", []):
@@ -401,11 +440,23 @@ def process_pdf_background(deck_id: int, pdf_path: str):
                         seen_lines.add(line)
                         combined.append(line)
 
-            print(f"  Group {gi+1}/{len(study_groups)}: '{topic}' (slides {slide_nums}, anchor {anchor_num})")
+            print(f"  Group {gi+1}/{len(study_groups)}: '{topic}' (slides {slide_nums})")
             concepts = extract_concepts_sync(combined, anchor["img_path"], topic)
 
             if concepts:
-                n_q = _store_group_questions(conn, concepts, anchor["slide_id"], deck_id)
+                # Generate overview (needs concepts for context)
+                overview = generate_topic_overview_sync(topic, concepts, "\n".join(combined))
+
+                # Create topic record
+                topic_cur = conn.execute(
+                    "INSERT INTO topics (deck_id, name, order_num, anchor_slide_id, overview_json) VALUES (?,?,?,?,?)",
+                    (deck_id, topic, gi, anchor["slide_id"], json.dumps(overview))
+                )
+                topic_id = topic_cur.lastrowid
+                conn.commit()
+
+                # Store concepts (with topic_id) + questions
+                n_q = _store_group_questions(conn, concepts, anchor["slide_id"], deck_id, topic_id)
                 print(f"    → {len(concepts)} concepts, {n_q} question sets")
 
             conn.execute("UPDATE decks SET processed_slides=? WHERE id=?", (anchor_num, deck_id))
@@ -423,61 +474,95 @@ def process_pdf_background(deck_id: int, pdf_path: str):
         conn.close()
 
 # ── Study Logic ───────────────────────────────────────────────────────────────
-def get_next_question(deck_id: int, target_slide: int = None) -> Optional[dict]:
+def get_next_question(
+    deck_id: int,
+    topic_id: int = None,
+    difficulty: str = None,
+    target_slide: int = None
+) -> Optional[dict]:
     conn = get_db()
     try:
-        # Skip mastery rows where the corresponding JSON column is NULL
-        # (can happen if question generation partially failed)
-        # Order: MCQ sweep across all slides → short_answer sweep → applied sweep
-        # Within each type: unstarted first, then weakest, in slide order
-        where_slide = "AND s.slide_number = ?" if target_slide else ""
-        params = (deck_id, target_slide) if target_slide else (deck_id,)
+        question_type = DIFFICULTY_TO_TYPE.get(difficulty) if difficulty else None
+
+        where_parts = ["q.deck_id = ?", "m.mastered = 0"]
+        params = [deck_id]
+
+        if topic_id:
+            where_parts.append("c.topic_id = ?")
+            params.append(topic_id)
+
+        if target_slide:
+            where_parts.append("s.slide_number = ?")
+            params.append(target_slide)
+
+        if question_type:
+            where_parts.append("m.question_type = ?")
+            params.append(question_type)
+            where_parts.append(f"q.{question_type}_json IS NOT NULL")
+        else:
+            where_parts.append("""(
+                (m.question_type = 'mcq'          AND q.mcq_json IS NOT NULL) OR
+                (m.question_type = 'short_answer' AND q.short_answer_json IS NOT NULL) OR
+                (m.question_type = 'applied'      AND q.applied_json IS NOT NULL)
+            )""")
+
+        where_clause  = " AND ".join(where_parts)
+        order_clause  = (
+            "m.attempts ASC, s.slide_number ASC, m.avg_score ASC"
+            if question_type else
+            "CASE m.question_type WHEN 'mcq' THEN 1 WHEN 'short_answer' THEN 2 ELSE 3 END ASC, "
+            "m.attempts ASC, s.slide_number ASC, m.avg_score ASC"
+        )
+
         row = conn.execute(f"""
             SELECT
                 q.id AS question_id,
                 q.mcq_json, q.short_answer_json, q.applied_json,
                 s.slide_number, s.image_path,
-                c.concept, c.explanation,
+                c.concept, c.explanation, c.topic_id,
                 m.question_type, m.attempts, m.avg_score, m.correct_streak, m.mastered
             FROM questions q
-            JOIN slides s ON q.slide_id = s.id
+            JOIN slides s   ON q.slide_id  = s.id
             JOIN concepts c ON q.concept_id = c.id
-            JOIN mastery m ON m.question_id = q.id
-            WHERE q.deck_id = ? AND m.mastered = 0
-              {where_slide}
-              AND (
-                (m.question_type = 'mcq'          AND q.mcq_json IS NOT NULL) OR
-                (m.question_type = 'short_answer' AND q.short_answer_json IS NOT NULL) OR
-                (m.question_type = 'applied'      AND q.applied_json IS NOT NULL)
-              )
-            ORDER BY
-                CASE m.question_type WHEN 'mcq' THEN 1 WHEN 'short_answer' THEN 2 ELSE 3 END ASC,
-                m.attempts ASC,
-                s.slide_number ASC,
-                m.avg_score ASC
+            JOIN mastery m  ON m.question_id = q.id
+            WHERE {where_clause}
+            ORDER BY {order_clause}
             LIMIT 1
         """, params).fetchone()
 
         if not row:
             return None
 
-        r = dict(row)
+        r  = dict(row)
         qt = r["question_type"]
-        field = {"mcq": "mcq_json", "short_answer": "short_answer_json", "applied": "applied_json"}[qt]
+        field  = {"mcq": "mcq_json", "short_answer": "short_answer_json", "applied": "applied_json"}[qt]
         q_data = json.loads(r[field]) if r[field] else None
         if not q_data:
             return None
 
-        stats = dict(conn.execute("""
-            SELECT COUNT(*) as total, COALESCE(SUM(mastered),0) as mastered
-            FROM mastery m JOIN questions q ON q.id = m.question_id
-            WHERE q.deck_id = ?
-        """, (deck_id,)).fetchone())
+        # Scope stats for progress display (filtered to same topic+difficulty if set)
+        stat_parts  = ["q.deck_id = ?"]
+        stat_params = [deck_id]
+        if topic_id:
+            stat_parts.append("c.topic_id = ?")
+            stat_params.append(topic_id)
+        if question_type:
+            stat_parts.append("m.question_type = ?")
+            stat_params.append(question_type)
+
+        stats = dict(conn.execute(f"""
+            SELECT COUNT(*) as total, COALESCE(SUM(m.mastered), 0) as mastered
+            FROM mastery m
+            JOIN questions q ON q.id = m.question_id
+            JOIN concepts c  ON c.id = q.concept_id
+            WHERE {' AND '.join(stat_parts)}
+        """, stat_params).fetchone())
 
         img_name = Path(r["image_path"]).name if r["image_path"] else None
         return {
             "question_id":         r["question_id"],
             "question_type":       qt,
+            "difficulty":          TYPE_TO_DIFFICULTY.get(qt, qt),
             "slide_number":        r["slide_number"],
             "image_url":           f"/slide_images/{img_name}" if img_name else None,
             "concept":             r["concept"],
@@ -485,8 +570,8 @@ def get_next_question(deck_id: int, target_slide: int = None) -> Optional[dict]:
             "question_data":       q_data,
             "attempts":            r["attempts"],
             "avg_score":           r["avg_score"],
-            "deck_total":          stats["total"],
-            "deck_mastered":       stats["mastered"],
+            "scope_total":         stats["total"],
+            "scope_mastered":      stats["mastered"],
         }
     finally:
         conn.close()
@@ -518,8 +603,8 @@ def update_mastery_db(question_id: int, question_type: str, score: float):
         ).fetchone()
         if not row:
             return
-        new_attempts = row["attempts"] + 1
-        new_avg      = (row["avg_score"] * row["attempts"] + score) / new_attempts
+        new_attempts  = row["attempts"] + 1
+        new_avg       = (row["avg_score"] * row["attempts"] + score) / new_attempts
         new_streak    = (row["correct_streak"] + 1) if score >= 8 else 0
         streak_needed = 1 if question_type == "mcq" else 2
         mastered      = 1 if (new_streak >= streak_needed and new_avg >= 7.0) else 0
@@ -533,7 +618,7 @@ def update_mastery_db(question_id: int, question_type: str, score: float):
     finally:
         conn.close()
 
-# ── Reprocess (fixes slides that got 0 questions due to parse errors) ─────────
+# ── Reprocess (fixes slides with concepts but missing questions) ───────────────
 def reprocess_questions_background(deck_id: int):
     conn = get_db()
     try:
@@ -547,11 +632,18 @@ def reprocess_questions_background(deck_id: int):
 
         total = len(slides)
         print(f"[Reprocess deck {deck_id}] {total} slides need questions")
-        conn.execute("UPDATE decks SET total_slides=?, processed_slides=0, status='processing' WHERE id=?", (total, deck_id))
+        conn.execute("UPDATE decks SET total_slides=?, processed_slides=0, status='processing' WHERE id=?",
+                     (total, deck_id))
         conn.commit()
 
         for idx, slide in enumerate(slides):
             slide_id = slide["id"]
+            # Look up topic for this slide
+            topic_row = conn.execute(
+                "SELECT id FROM topics WHERE anchor_slide_id=? AND deck_id=?", (slide_id, deck_id)
+            ).fetchone()
+            topic_id = topic_row["id"] if topic_row else None
+
             concepts_rows = conn.execute(
                 "SELECT id, concept, explanation, type FROM concepts WHERE slide_id=? ORDER BY id", (slide_id,)
             ).fetchall()
@@ -572,14 +664,12 @@ def reprocess_questions_background(deck_id: int):
                 for qt in ("mcq", "short_answer", "applied"):
                     conn.execute("INSERT OR IGNORE INTO mastery (question_id, question_type) VALUES (?,?)", (q_id, qt))
             conn.commit()
-
             conn.execute("UPDATE decks SET processed_slides=? WHERE id=?", (idx + 1, deck_id))
             conn.commit()
             print(f"  Slide {slide['slide_number']}: {len(questions)} question sets")
 
         conn.execute("UPDATE decks SET status='done' WHERE id=?", (deck_id,))
         conn.commit()
-        print(f"[Reprocess deck {deck_id}] Done.")
     except Exception as e:
         print(f"[Reprocess deck {deck_id}] Error: {e}")
         conn.execute("UPDATE decks SET status='error' WHERE id=?", (deck_id,))
@@ -615,8 +705,8 @@ async def list_decks():
     conn = get_db()
     rows = conn.execute("""
         SELECT d.*,
-            COUNT(DISTINCT q.id)               AS total_questions,
-            COALESCE(SUM(m.mastered), 0)       AS mastered_questions
+            COUNT(DISTINCT q.id)         AS total_questions,
+            COALESCE(SUM(m.mastered), 0) AS mastered_questions
         FROM decks d
         LEFT JOIN questions q ON q.deck_id = d.id
         LEFT JOIN mastery m   ON m.question_id = q.id
@@ -635,6 +725,61 @@ async def deck_status(deck_id: int):
         raise HTTPException(404, "Not found")
     return dict(row)
 
+@app.get("/deck/{deck_id}/topics")
+async def get_topics(deck_id: int):
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT t.*,
+            s.image_path   AS anchor_image,
+            s.slide_number AS anchor_slide_num,
+            COUNT(CASE WHEN m.question_type='mcq'          THEN 1 END) AS total_easy,
+            COALESCE(SUM(CASE WHEN m.question_type='mcq'          AND m.mastered=1 THEN 1 ELSE 0 END), 0) AS mastered_easy,
+            COUNT(CASE WHEN m.question_type='short_answer' THEN 1 END) AS total_medium,
+            COALESCE(SUM(CASE WHEN m.question_type='short_answer' AND m.mastered=1 THEN 1 ELSE 0 END), 0) AS mastered_medium,
+            COUNT(CASE WHEN m.question_type='applied'      THEN 1 END) AS total_tricky,
+            COALESCE(SUM(CASE WHEN m.question_type='applied'      AND m.mastered=1 THEN 1 ELSE 0 END), 0) AS mastered_tricky
+        FROM topics t
+        LEFT JOIN slides s   ON s.id = t.anchor_slide_id
+        LEFT JOIN concepts c ON c.topic_id = t.id
+        LEFT JOIN questions q ON q.concept_id = c.id
+        LEFT JOIN mastery m   ON m.question_id = q.id
+        WHERE t.deck_id = ?
+        GROUP BY t.id
+        ORDER BY t.order_num
+    """, (deck_id,)).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        if d.get("anchor_image"):
+            d["anchor_image_url"] = f"/slide_images/{Path(d['anchor_image']).name}"
+        if d.get("overview_json"):
+            try:
+                d["overview"] = json.loads(d["overview_json"])
+            except Exception:
+                d["overview"] = None
+        result.append(d)
+    return result
+
+@app.get("/topic/{topic_id}")
+async def get_topic(topic_id: int):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM topics WHERE id=?", (topic_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Topic not found")
+    d = dict(row)
+    if d.get("overview_json"):
+        try:
+            d["overview"] = json.loads(d["overview_json"])
+        except Exception:
+            d["overview"] = None
+    concepts = conn.execute(
+        "SELECT id, concept, explanation, type FROM concepts WHERE topic_id=? ORDER BY id", (topic_id,)
+    ).fetchall()
+    d["concepts"] = [dict(c) for c in concepts]
+    conn.close()
+    return d
+
 @app.post("/deck/{deck_id}/reprocess")
 async def reprocess_deck(deck_id: int, background_tasks: BackgroundTasks):
     conn = get_db()
@@ -644,39 +789,23 @@ async def reprocess_deck(deck_id: int, background_tasks: BackgroundTasks):
     background_tasks.add_task(reprocess_questions_background, deck_id)
     return {"ok": True}
 
-@app.get("/deck/{deck_id}/slides")
-async def deck_slides(deck_id: int):
-    conn = get_db()
-    rows = conn.execute("""
-        SELECT s.slide_number,
-            s.image_path,
-            COUNT(DISTINCT q.id)               AS total_q,
-            COALESCE(SUM(m.mastered), 0)       AS mastered_q,
-            COALESCE(AVG(NULLIF(m.attempts,0) * m.avg_score / NULLIF(m.attempts,0)), 0) AS avg_score
-        FROM slides s
-        LEFT JOIN questions q ON q.slide_id = s.id
-        LEFT JOIN mastery m   ON m.question_id = q.id
-        WHERE s.deck_id = ?
-        GROUP BY s.id
-        ORDER BY s.slide_number
-    """, (deck_id,)).fetchall()
-    conn.close()
-    result = []
-    for r in rows:
-        d = dict(r)
-        if d["image_path"]:
-            d["image_url"] = f"/slide_images/{Path(d['image_path']).name}"
-        result.append(d)
-    return result
-
 @app.get("/study/next/{deck_id}")
-async def next_question(deck_id: int, slide: int = None):
-    q = get_next_question(deck_id, target_slide=slide)
+async def next_question(
+    deck_id: int,
+    topic_id: int = None,
+    difficulty: str = None,
+    slide: int = None
+):
+    q = get_next_question(deck_id, topic_id=topic_id, difficulty=difficulty, target_slide=slide)
     if not q:
-        # If slide filter returned nothing, fall back to global next
-        q = get_next_question(deck_id) if slide else None
+        # If topic+difficulty filter found nothing, try without difficulty (maybe they skipped a type)
+        if topic_id and difficulty:
+            q = get_next_question(deck_id, topic_id=topic_id)
+        # If still nothing, try global
+        if not q:
+            q = get_next_question(deck_id) if (topic_id or difficulty or slide) else None
     if not q:
-        return {"done": True, "message": "All concepts mastered!"}
+        return {"done": True}
     return q
 
 @app.get("/weaknesses/{deck_id}")
@@ -684,11 +813,12 @@ async def get_weaknesses(deck_id: int):
     conn = get_db()
     rows = conn.execute("""
         SELECT c.concept, c.explanation, m.avg_score, m.attempts, m.question_type,
-               s.slide_number
+               s.slide_number, t.name AS topic_name
         FROM mastery m
-        JOIN questions q  ON q.id = m.question_id
-        JOIN concepts c   ON c.id = q.concept_id
-        JOIN slides s     ON s.id = q.slide_id
+        JOIN questions q ON q.id = m.question_id
+        JOIN concepts c  ON c.id = q.concept_id
+        JOIN slides s    ON s.id = q.slide_id
+        LEFT JOIN topics t ON t.id = c.topic_id
         WHERE q.deck_id = ? AND m.attempts > 0 AND m.mastered = 0
         ORDER BY m.avg_score ASC, m.attempts DESC
         LIMIT 10
@@ -719,10 +849,10 @@ async def submit_answer(body: AnswerBody):
         conn.close()
         update_mastery_db(body.question_id, body.question_type, score)
         return {
-            "score":              score,
-            "is_correct":         is_correct,
-            "correct":            body.question_data.get("correct"),
-            "explanation":        body.question_data.get("explanation", ""),
+            "score":               score,
+            "is_correct":          is_correct,
+            "correct":             body.question_data.get("correct"),
+            "explanation":         body.question_data.get("explanation", ""),
             "follow_up_questions": [],
         }
     else:
