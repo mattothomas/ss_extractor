@@ -412,6 +412,60 @@ def update_mastery_db(question_id: int, question_type: str, score: float):
     finally:
         conn.close()
 
+# ── Reprocess (fixes slides that got 0 questions due to parse errors) ─────────
+def reprocess_questions_background(deck_id: int):
+    conn = get_db()
+    try:
+        slides = conn.execute("""
+            SELECT s.id, s.slide_number FROM slides s
+            WHERE s.deck_id = ?
+              AND EXISTS     (SELECT 1 FROM concepts  c WHERE c.slide_id = s.id)
+              AND NOT EXISTS (SELECT 1 FROM questions q WHERE q.slide_id = s.id)
+            ORDER BY s.slide_number
+        """, (deck_id,)).fetchall()
+
+        total = len(slides)
+        print(f"[Reprocess deck {deck_id}] {total} slides need questions")
+        conn.execute("UPDATE decks SET total_slides=?, processed_slides=0, status='processing' WHERE id=?", (total, deck_id))
+        conn.commit()
+
+        for idx, slide in enumerate(slides):
+            slide_id = slide["id"]
+            concepts_rows = conn.execute(
+                "SELECT id, concept, explanation, type FROM concepts WHERE slide_id=? ORDER BY id", (slide_id,)
+            ).fetchall()
+            concepts    = [dict(r) for r in concepts_rows]
+            concept_ids = [r["id"] for r in concepts_rows]
+
+            questions = generate_questions_sync(concepts)
+            for q in questions:
+                ci = min(q.get("concept_index", 0), len(concept_ids) - 1)
+                cur = conn.execute(
+                    "INSERT INTO questions (concept_id, slide_id, deck_id, mcq_json, short_answer_json, applied_json) VALUES (?,?,?,?,?,?)",
+                    (concept_ids[ci], slide_id, deck_id,
+                     json.dumps(q["mcq"])          if q.get("mcq")          else None,
+                     json.dumps(q["short_answer"])  if q.get("short_answer") else None,
+                     json.dumps(q["applied"])       if q.get("applied")      else None)
+                )
+                q_id = cur.lastrowid
+                for qt in ("mcq", "short_answer", "applied"):
+                    conn.execute("INSERT OR IGNORE INTO mastery (question_id, question_type) VALUES (?,?)", (q_id, qt))
+            conn.commit()
+
+            conn.execute("UPDATE decks SET processed_slides=? WHERE id=?", (idx + 1, deck_id))
+            conn.commit()
+            print(f"  Slide {slide['slide_number']}: {len(questions)} question sets")
+
+        conn.execute("UPDATE decks SET status='done' WHERE id=?", (deck_id,))
+        conn.commit()
+        print(f"[Reprocess deck {deck_id}] Done.")
+    except Exception as e:
+        print(f"[Reprocess deck {deck_id}] Error: {e}")
+        conn.execute("UPDATE decks SET status='error' WHERE id=?", (deck_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/")
 async def root():
@@ -459,6 +513,15 @@ async def deck_status(deck_id: int):
     if not row:
         raise HTTPException(404, "Not found")
     return dict(row)
+
+@app.post("/deck/{deck_id}/reprocess")
+async def reprocess_deck(deck_id: int, background_tasks: BackgroundTasks):
+    conn = get_db()
+    conn.execute("UPDATE decks SET status='processing' WHERE id=?", (deck_id,))
+    conn.commit()
+    conn.close()
+    background_tasks.add_task(reprocess_questions_background, deck_id)
+    return {"ok": True}
 
 @app.get("/deck/{deck_id}/slides")
 async def deck_slides(deck_id: int):
